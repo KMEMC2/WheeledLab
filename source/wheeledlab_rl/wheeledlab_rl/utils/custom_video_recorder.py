@@ -1,4 +1,5 @@
 from __future__ import annotations
+import inspect
 import os
 from typing import Callable
 
@@ -9,7 +10,12 @@ import numpy as np
 import wandb
 from gymnasium import logger
 from gymnasium.core import ActType, ObsType
-from gymnasium.wrappers.rendering import RecordVideo
+try:
+    # gymnasium>=1.0 moved RecordVideo here.
+    from gymnasium.wrappers.rendering import RecordVideo
+except ModuleNotFoundError:
+    # gymnasium<1.0 (e.g. Isaac Sim's bundled 0.29.1) still exposes it at the package level.
+    from gymnasium.wrappers import RecordVideo
 
 
 
@@ -35,16 +41,18 @@ class CustomRecordVideo(RecordVideo):
         if enable_wandb and wandb.run.name is None:
             raise ValueError("wandb must be initialized before wrapping.")
 
-        super().__init__(
-            env,
-            video_folder,
-            episode_trigger,
-            step_trigger,
-            video_length,
-            name_prefix,
-            fps,
-            disable_logger,
+        record_video_kwargs = dict(
+            episode_trigger=episode_trigger,
+            step_trigger=step_trigger,
+            video_length=video_length,
+            name_prefix=name_prefix,
+            fps=fps,
+            disable_logger=disable_logger,
         )
+        if "fps" not in inspect.signature(RecordVideo.__init__).parameters:
+            # gymnasium<1.0 (e.g. Isaac Sim's bundled 0.29.1) has no fps parameter.
+            del record_video_kwargs["fps"]
+        super().__init__(env, video_folder, **record_video_kwargs)
         self.enable_wandb = enable_wandb
         self.video_resolution = video_resolution
         self.video_crf = video_crf

@@ -46,10 +46,14 @@ def rl_run_cfg_from_dict(run_cfg:DictConfig, run_config_name: str, cfg: Dict[str
 
     # Fill default run config with train, env, and agent of loaded config
     update_run_cfg: RunConfig = getattr(configs, run_config_name)() # default run config from module
+    print(f"[TRACE] cfg['train'] (Hydra-composed dict, incl. CLI overrides) = {cfg['train']}")
+    print(f"[TRACE] fresh update_run_cfg.train.log.run_name (class default) = {update_run_cfg.train.log.run_name!r}")
     update_class_from_dict(update_run_cfg.train, run_cfg.train)
+    print(f"[TRACE] after update_class_from_dict(update_run_cfg.train, run_cfg.train): run_name = {update_run_cfg.train.log.run_name!r}")
     update_run_cfg.env_setup.from_dict(cfg['env_setup'])
     update_run_cfg.agent_setup.from_dict(cfg['agent_setup'])
     update_run_cfg.train.from_dict(cfg['train'])
+    print(f"[TRACE] after update_run_cfg.train.from_dict(cfg['train']): run_name = {update_run_cfg.train.log.run_name!r}, no_wandb = {update_run_cfg.train.log.no_wandb!r}")
 
     # Construct configclasses for missing types
     if env_cfg_class:
@@ -135,9 +139,11 @@ def hydra_run_config(run_config_name:str, auto_resolve_conflicts=True) -> Callab
 
                 # convert to a native dictionary
                 hydra_env_cfg = OmegaConf.to_container(hydra_env_cfg, resolve=True)
+                print(f"[TRACE] raw hydra_env_cfg['train'] right after OmegaConf.to_container = {hydra_env_cfg.get('train')}")
 
                 # replace string with slices because OmegaConf does not support slices
                 hydra_env_cfg = replace_strings_with_slices(hydra_env_cfg)
+                print(f"[TRACE] hydra_env_cfg['train'] after replace_strings_with_slices = {hydra_env_cfg.get('train')}")
 
                 # update the configs with the Hydra command line arguments
                 env_cfg.from_dict(hydra_env_cfg["env"])
@@ -152,10 +158,12 @@ def hydra_run_config(run_config_name:str, auto_resolve_conflicts=True) -> Callab
                 #                    agent_cfg_class=agent_cfg.__class__)
                 run_cfg = rl_run_cfg_from_dict(run_cfg, run_config_name, hydra_env_cfg, env_cfg_class=env_cfg.__class__,
                                           agent_cfg_class=agent_cfg.__class__)
+                print(f"[TRACE] after rl_run_cfg_from_dict: run_cfg.train.log.run_name = {run_cfg.train.log.run_name!r}")
 
                 # Resolve interdependencies between various config params (e.g. env.num_envs = env_setup.num_envs)
                 if auto_resolve_conflicts:
                     _consolidate_resolved_cfgs(run_cfg)
+                print(f"[TRACE] after _consolidate_resolved_cfgs: run_cfg.train.log.run_name = {run_cfg.train.log.run_name!r}")
 
                 func(run_cfg, *args, **kwargs)
 

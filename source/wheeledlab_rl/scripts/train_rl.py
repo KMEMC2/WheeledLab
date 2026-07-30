@@ -43,6 +43,7 @@ def main(run_cfg: RunConfig): # TODO: Add SB3 config support
     train_cfg = run_cfg.train
     log_cfg = train_cfg.log
     env_setup = run_cfg.env_setup
+    print(f"[TRACE] entering main(): log_cfg.run_name = {log_cfg.run_name!r}, log_cfg.no_wandb = {log_cfg.no_wandb!r}")
 
     if not log_cfg.no_wandb:
         import wandb
